@@ -1,0 +1,117 @@
+:root {
+  --page: #f0ede6;
+  --ink: #3a3a34;
+  --dim: #8a8578;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: var(--page);
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.app {
+  position: relative;
+  height: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.over {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(240, 237, 230, 0.9);
+  backdrop-filter: blur(6px);
+  padding: 24px;
+}
+
+.over-card {
+  background: #f7f5f0;
+  border: 1px solid #e1dcd1;
+  border-radius: 14px;
+  padding: 28px 26px 24px;
+  text-align: center;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 18px 40px rgba(74, 66, 48, 0.14);
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.over-card h1 {
+  margin: 0;
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.over-card .sub {
+  margin: 6px 0 22px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.over-card dl {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin: 0 0 24px;
+}
+
+.over-card dl div { text-align: center; }
+
+.over-card dt {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 4px;
+}
+
+.over-card dd {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.over-card button {
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  padding: 14px;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.over-card button:focus-visible { outline: 3px solid #2e6390; outline-offset: 2px; }

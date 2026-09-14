@@ -111,11 +111,18 @@ describe('scoring', () => {
     expect(scoreCell(b, idx(0, 0))).toBe(10 + 5 * 1)
   })
 
-  it('pays a flat 15 per density unit at every density, killing donor farming', () => {
-    for (const d of [1, 2, 3]) {
+  it('makes density pay more per unit, without reviving donor farming', () => {
+    const per = [1, 2, 3].map((d) => {
       const b = boardWith({ [idx(0, 0)]: zone('R', d), [idx(1, 0)]: zone('C', 3) })
-      expect(scoreCell(b, idx(0, 0)) / d).toBe(15)
-    }
+      return scoreCell(b, idx(0, 0)) / d
+    })
+    expect(per).toEqual([15, 17.5, 20])
+    // Rising, so upzoning is worth the tempo it costs...
+    expect(per[2]).toBeGreaterThan(per[0])
+    // ...and a cheap cell still cannot milk a dense neighbour: min() caps the pair.
+    const cheap = boardWith({ [idx(0, 0)]: zone('R', 1), [idx(1, 0)]: zone('C', 3) })
+    const dense = boardWith({ [idx(0, 0)]: zone('R', 1), [idx(1, 0)]: zone('C', 1) })
+    expect(scoreCell(cheap, idx(0, 0))).toBe(scoreCell(dense, idx(0, 0)))
   })
 
   it('floors a poisoned cell at zero rather than going negative', () => {
@@ -139,12 +146,12 @@ describe('scoring', () => {
       [idx(0, 0)]: zone('R', 3),
       [idx(1, 0)]: { kind: 'park', zone: null, density: 1 },
     })
-    expect(scoreCell(b, idx(0, 0))).toBe(30 + 5 * 3)
+    expect(scoreCell(b, idx(0, 0))).toBe(45 + 5 * 3)
   })
 
   it('pays nothing for same-zone adjacency', () => {
     const b = boardWith({ [idx(0, 0)]: zone('R', 2), [idx(1, 0)]: zone('R', 3) })
-    expect(scoreCell(b, idx(0, 0))).toBe(20)
+    expect(scoreCell(b, idx(0, 0))).toBe(25)
     expect(pairValue(zone('R', 1), zone('R', 1))).toBe(0)
   })
 
@@ -172,18 +179,18 @@ describe('the worked example from the design doc', () => {
     return b
   }
 
-  it('scores 114 raw, 183 with residential demand doubled', () => {
+  it('scores 134 raw, 223 with residential demand doubled', () => {
     const b = row(zone('I', 3))
     const values = [0, 1, 2, 3, 4, 5, 6, 7].map((x) => scoreCell(b, idx(x, 0)))
-    expect(values).toEqual([4, 20, 20, 25, 15, 10, 10, 10])
+    expect(values).toEqual([9, 25, 25, 30, 15, 10, 10, 10])
     const raw = values.reduce((a, c) => a + c, 0)
-    expect(raw).toBe(114)
+    expect(raw).toBe(134)
     const doubled = values.slice(0, 4).reduce((a, c) => a + c, 0) * 2 + values.slice(4).reduce((a, c) => a + c, 0)
-    expect(doubled).toBe(183)
+    expect(doubled).toBe(223)
   })
 
-  it('scores 215 with the factory out of contact and 235 as a shop', () => {
-    for (const [neighbour, expected] of [[null, 215], [zone('C', 3), 235]] as const) {
+  it('scores 255 with the factory out of contact and 275 as a shop', () => {
+    for (const [neighbour, expected] of [[null, 255], [zone('C', 3), 275]] as const) {
       const b = row(neighbour)
       const values = [0, 1, 2, 3, 4, 5, 6, 7].map((x) => scoreCell(b, idx(x, 0)))
       const total = values.slice(0, 4).reduce((a, c) => a + c, 0) * 2 + values.slice(4).reduce((a, c) => a + c, 0)
@@ -193,10 +200,29 @@ describe('the worked example from the design doc', () => {
 })
 
 describe('lines', () => {
-  it('counts roads and blight as filled', () => {
+  it('counts roads as filled', () => {
     const b = emptyBoard()
-    for (let x = 0; x < W; x++) b[idx(x, 0)] = x < 5 ? road() : { kind: 'blight', zone: null, density: 1 }
+    for (let x = 0; x < W; x++) b[idx(x, 0)] = x < 5 ? road() : zone('R', 1)
     expect(completeLines(b).length).toBe(1)
+  })
+
+  it('lets one blight cell block its whole row and column', () => {
+    const b = emptyBoard()
+    for (let x = 0; x < W; x++) b[idx(x, 0)] = zone('R', 1)
+    for (let y = 0; y < H; y++) b[idx(0, y)] = zone('R', 1)
+    expect(completeLines(b).length).toBe(2) // the row and the column
+    b[idx(0, 0)] = { kind: 'blight', zone: null, density: 1 }
+    expect(completeLines(b).length).toBe(0) // one cell at the intersection kills both
+  })
+
+  it('never clears blight, so it accumulates until bulldozed', () => {
+    const b = emptyBoard()
+    for (let x = 0; x < W; x++) b[idx(x, 0)] = zone('R', 1)
+    b[idx(3, 1)] = { kind: 'blight', zone: null, density: 1 }
+    const s = newGame(2)
+    s.board = b
+    const out = settlePlacement(s, makePiece('park', 'park', null), 5, 5, 'works', 0)
+    expect(out.board[idx(3, 1)].kind).toBe('blight')
   })
 
   it('does not complete a line containing an empty cell', () => {
@@ -260,14 +286,24 @@ describe('settlement', () => {
     expect(out.demand.R).toBeLessThan(99)
   })
 
-  it('owes a park every PARK_EVERY lines', () => {
+  it('owes a park on population banked, not on line count', () => {
     let s = newGame(3)
     s.parkProgress = PARK_EVERY - 1
     const b = emptyBoard()
-    for (let x = 1; x < W; x++) b[idx(x, 0)] = zone('R', 1)
+    for (let x = 1; x < W; x++) b[idx(x, 0)] = zone('R', 2)
     s.board = b
     s = settlePlacement(s, makePiece('zone', 'O', 'R'), 0, 0, 'hand', 0)
     expect(s.parkQueue + (s.works?.kind === 'park' ? 1 : 0)).toBeGreaterThanOrEqual(1)
+
+    // A cheap line must not buy one: line count is farmable, population is not.
+    let t = newGame(3)
+    t.parkProgress = 0
+    const c = emptyBoard()
+    for (let x = 1; x < W; x++) c[idx(x, 0)] = { kind: 'road', zone: null, density: 1 }
+    t.board = c
+    t = settlePlacement(t, makePiece('road', 'r2', null), 0, 0, 'works', 0)
+    expect(t.lines).toBe(1)
+    expect(t.parkQueue).toBe(0)
   })
 })
 

@@ -1,11 +1,14 @@
 import { drawRoadPiece, drawZonePiece, makeParkPiece } from './bag'
 import {
+  BLIGHT_PER_PLACEMENT,
   CHARGES_MAX,
   DECADE,
   DEMAND_MAX,
   DEMAND_RESET,
   GROWTH_BASE,
+  GROWTH_MAX,
   OVERFLOW_GROWTH,
+  OVERFLOW_GROWTH_MAX,
   PARK_EVERY,
   POPULATION_PER_CHARGE,
   WORKS_COOLDOWN,
@@ -21,7 +24,8 @@ import { emptyCell, ZONES } from './types'
 const MAX_SKYLINE = 400
 
 export function growthFor(s: State, z: Zone): number {
-  return GROWTH_BASE + Math.floor(s.placements / DECADE) + s.growthBonus[z]
+  const ramp = GROWTH_BASE + Math.floor(s.placements / DECADE)
+  return Math.min(ramp, GROWTH_MAX) + s.growthBonus[z]
 }
 
 /**
@@ -106,19 +110,25 @@ export function settlePlacement(
   }
 
   // 6. overflow. A clear can avert a crossing on the turn it would have happened.
+  //    Blight counts as filled, so it is free line-completion material — capped
+  //    per placement, because uncapped it feeds the clear engine that generates it.
+  let spawned = 0
   for (const z of ZONES) {
     if (s.demand[z] >= DEMAND_MAX) {
       s.demand[z] = DEMAND_RESET
-      s.growthBonus[z] += OVERFLOW_GROWTH
+      s.growthBonus[z] = Math.min(s.growthBonus[z] + OVERFLOW_GROWTH, OVERFLOW_GROWTH_MAX)
       s.blightEvents++
-      spawnBlight(s)
+      if (spawned < BLIGHT_PER_PLACEMENT) {
+        spawnBlight(s)
+        spawned++
+      }
     }
   }
 
   // 7. rewards, refills, cooldown
   s.lines += lines.length
   s.population += total
-  s.parkProgress += lines.length
+  s.parkProgress += total
   while (s.parkProgress >= PARK_EVERY) {
     s.parkProgress -= PARK_EVERY
     s.parkQueue++

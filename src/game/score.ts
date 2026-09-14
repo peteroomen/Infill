@@ -1,5 +1,5 @@
 import {
-  BASE_PER_DENSITY,
+  DENSITY_VALUE,
   MULTI_CAP,
   MULTI_STEP,
   PAIR_BLIGHT,
@@ -29,18 +29,23 @@ function neighbourDensity(b: Cell): number {
 }
 
 /**
- * cell = max(0, 10 * own_density + Σ pair * min(own_density, neighbour_density))
+ * cell = max(0, DENSITY_VALUE[own] + Σ pair * min(own_density, neighbour_density))
  *
- * The min() is load-bearing. Scaling by the neighbour's density alone let a
+ * Two halves, and both are load-bearing.
+ *
+ * The min() kills donor farming. Scaling by the neighbour's density alone let a
  * density-1 cell collect a density-3 neighbour's full bonus, which made cheap
- * recipients *more* efficient per density unit invested (25 against 15) and made
- * the optimal play farming permanently unharvested donor strips. With min(), the
- * return is a flat 15 per density unit at every density.
+ * recipients *more* efficient per unit invested (25 against 15) and made the
+ * optimal play farming permanently unharvested donor strips.
+ *
+ * The superlinear base gives upzoning a reason to exist. min() alone flattened
+ * the return to 15 per unit at every density, and since an upzone fills no new
+ * cell it also costs tempo — so the harness found bots that never upzoned at all.
  */
 export function scoreCell(board: Cell[], i: number): number {
   const c = board[i]
   if (c.kind !== 'zone') return 0
-  let s = BASE_PER_DENSITY * c.density
+  let s = DENSITY_VALUE[c.density]
   for (const n of neighbourIndices(board, i)) {
     if (n === null) continue
     const nb = board[n]

@@ -58,16 +58,37 @@ export function colIndices(x: number): number[] {
   return out
 }
 
-/** A line is complete when no cell in it is empty. Roads and blight count as filled. */
+/**
+ * A line completes when every cell is built and none is blighted.
+ *
+ * Roads count as filled — they are infrastructure, and closing a row with one is
+ * a real trade. Blight does the opposite: it BLOCKS its row and its column until
+ * bulldozed, which is the only pressure in the design that actually accumulates.
+ *
+ * This was measured, not assumed. With blight counting as filled and clearing
+ * with its line, the harness found the board sitting 60-80% empty for a thousand
+ * placements: clears removed cells exactly as fast as placements added them, so
+ * the board could never saturate and the run could never end. Blight that blocks
+ * is what closes the loop — and unlike terrain, it is caused by your own play,
+ * arrives gradually, and can be removed.
+ */
+export function lineIsClearable(board: Cell[], line: number[]): boolean {
+  for (const i of line) {
+    const k = board[i].kind
+    if (k === 'empty' || k === 'blight') return false
+  }
+  return true
+}
+
 export function completeLines(board: Cell[]): number[][] {
   const lines: number[][] = []
   for (let y = 0; y < H; y++) {
     const r = rowIndices(y)
-    if (r.every((i) => board[i].kind !== 'empty')) lines.push(r)
+    if (lineIsClearable(board, r)) lines.push(r)
   }
   for (let x = 0; x < W; x++) {
     const c = colIndices(x)
-    if (c.every((i) => board[i].kind !== 'empty')) lines.push(c)
+    if (lineIsClearable(board, c)) lines.push(c)
   }
   return lines
 }
