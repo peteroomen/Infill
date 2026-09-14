@@ -23,7 +23,7 @@ export interface Layout {
 
 const PAD = 16
 const HEADER_H = 104
-const SKYLINE_H = 56
+const SKYLINE_H = 88
 const RAIL_H = 126
 const GAP = 12
 
@@ -37,15 +37,19 @@ export function layout(w: number, h: number): Layout {
   const innerW = w - pad * 2
   const headerY = pad
   const skylineY = headerY + HEADER_H + GAP
-  const boardY = skylineY + SKYLINE_H + GAP
+  const spaceTop = skylineY + SKYLINE_H + GAP
   const railH = RAIL_H
   const railY = h - pad - railH
-  const availH = railY - GAP - boardY
+  const spaceBottom = railY - GAP
+  const availH = spaceBottom - spaceTop
 
   const cell = Math.max(18, Math.floor(Math.min(innerW / W, availH / H)))
   const boardW = cell * W
   const boardH = cell * H
   const boardX = pad + (innerW - boardW) / 2
+  // Centre the board in whatever is left: the cell size is capped by width, so
+  // on a tall screen the slack belongs around the board, not under it.
+  const boardY = spaceTop + Math.max(0, (availH - boardH) / 2)
 
   const weights = [1, 1, 1, 0.92, 0.92]
   const gaps = GAP * 0.6 * (weights.length - 1)

@@ -33,7 +33,9 @@ export default function App() {
   const holdRef = useRef<number | null>(null)
   const pulseRef = useRef(0)
   const sizeRef = useRef({ w: 390, h: 844 })
-  const [, forceDraw] = useState(0)
+  // Bumped by pointer moves and the clear animation. The draw effect depends on
+  // it, because neither a drag nor a pulse changes React state that `draw` sees.
+  const [tick, forceDraw] = useState(0)
 
   /** Board cell under a point, with the piece centred and the offset flipped near the top. */
   const anchorFor = useCallback((piece: Piece, px: number, py: number) => {
@@ -85,7 +87,7 @@ export default function App() {
 
   useEffect(() => {
     draw()
-  }, [draw])
+  }, [draw, tick])
 
   // Clear pulse. The one indulgence: a thin clear is over instantly, a big one holds.
   useEffect(() => {

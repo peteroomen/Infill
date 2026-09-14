@@ -109,7 +109,9 @@ function drawSkyline(ctx: CanvasRenderingContext2D, r: Rect, s: State): void {
 
   const entries = s.skyline.slice(-Math.floor(r.w / 5))
   if (entries.length === 0) {
-    label(ctx, 'the city, so far', r.x + 12, r.y + r.h / 2 + 4, 9, T.INK_FAINT)
+    label(ctx, 'the city, so far', r.x + 12, r.y + r.h - 18, 9, T.INK_FAINT)
+    ctx.fillStyle = T.BOARD_FRAME
+    ctx.fillRect(r.x + 6, r.y + r.h - 6, r.w - 12, 1.5)
     return
   }
   const bw = Math.min(9, r.w / Math.max(entries.length, 1))

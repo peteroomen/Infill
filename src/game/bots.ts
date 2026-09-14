@@ -1,4 +1,4 @@
-import { H, W } from './constants'
+import { DENSITY_VALUE, H, W } from './constants'
 import { place, type Move } from './engine'
 import { colIndices, rowIndices } from './grid'
 import { allRotations } from './pieces'
@@ -34,30 +34,46 @@ export function candidates(s: State): Move[] {
 
 /**
  * How good a board is to be holding, apart from points already banked.
- * Line progress and open space pull against each other, which is the tension
- * the game is actually about.
+ *
+ * An earlier version rewarded line-fill and open space, and measured *worse*
+ * than the greedy bot — it was advice to spread out and clear fast, which is
+ * precisely wrong now that density pays superlinearly. What a board is worth is
+ * mostly the value stored in it: a density-3 block is 45 population waiting to
+ * be harvested, and it occupies one cell rather than three.
  */
 export function heuristic(s: State): number {
   let h = 0
   let empty = 0
   let blight = 0
+  let stored = 0
+
   for (const c of s.board) {
     if (c.kind === 'empty') empty++
     else if (c.kind === 'blight') blight++
+    else if (c.kind === 'zone') stored += DENSITY_VALUE[c.density]
   }
 
+  // Value already built, waiting to be harvested.
+  h += stored * 0.55
+
+  // Progress toward lines that can actually clear. A blighted line is worth
+  // nothing to fill, so it must not be counted.
   for (let y = 0; y < H; y++) {
-    const f = rowIndices(y).filter((i) => s.board[i].kind !== 'empty').length
-    h += f * f * 0.4
+    const line = rowIndices(y)
+    if (line.some((i) => s.board[i].kind === 'blight')) continue
+    const f = line.filter((i) => s.board[i].kind !== 'empty').length
+    h += f * f * 0.22
   }
   for (let x = 0; x < W; x++) {
-    const f = colIndices(x).filter((i) => s.board[i].kind !== 'empty').length
-    h += f * f * 0.4
+    const line = colIndices(x)
+    if (line.some((i) => s.board[i].kind === 'blight')) continue
+    const f = line.filter((i) => s.board[i].kind !== 'empty').length
+    h += f * f * 0.22
   }
 
-  h += empty * 1.2
-  h -= blight * 25
-  for (const z of ZONES) h -= s.demand[z] * 1.0
+  h += empty * 0.8
+  h -= blight * 70 // each one kills a row and a column
+  for (const z of ZONES) h -= s.demand[z] * 1.2
 
   // Standing adjacency quality, so the bot is not blind to what it is building.
   for (let i = 0; i < s.board.length; i++) {
