@@ -25,7 +25,7 @@ export interface Shade {
   dark: string
 }
 
-export const ZONE_SHADES: Record<string, Shade[]> = {
+const NORMAL_SHADES: Record<string, Shade[]> = {
   R: [
     { top: '#A3BE86', side: '#8CA771', dark: '#7A9462' },
     { top: '#7FA05E', side: '#6B8A4E', dark: '#5C7842' },
@@ -41,6 +41,41 @@ export const ZONE_SHADES: Record<string, Shade[]> = {
     { top: '#D5A03F', side: '#BC8B32', dark: '#A3782A' },
     { top: '#A8761F', side: '#8F6319', dark: '#785214' },
   ],
+}
+
+/** Wider steps between densities, for sunlight and for low vision. */
+const CONTRAST_SHADES: Record<string, Shade[]> = {
+  R: [
+    { top: '#C8DEB2', side: '#A6C08C', dark: '#8FAA75' },
+    { top: '#6E9350', side: '#587A3E', dark: '#486733' },
+    { top: '#33502A', side: '#27411F', dark: '#1D3318' },
+  ],
+  C: [
+    { top: '#B7D6EF', side: '#93B9D9', dark: '#7FA7C9' },
+    { top: '#3A7FB6', side: '#2C6795', dark: '#235780' },
+    { top: '#173F63', side: '#10314F', dark: '#0B2640' },
+  ],
+  I: [
+    { top: '#F6DCA6', side: '#DCBE83', dark: '#C6A86D' },
+    { top: '#C89026', side: '#A8761C', dark: '#906315' },
+    { top: '#6E4A0C', side: '#573A08', dark: '#432C05' },
+  ],
+}
+
+/**
+ * These are `let` so the contrast setting can swap them at runtime. Consumers
+ * use `import * as T`, which follows live bindings, so nothing else has to know.
+ */
+export let ZONE_SHADES: Record<string, Shade[]> = NORMAL_SHADES
+export let BOARD_GRID_LINE = '#C0B091'
+export let OUTLINE_ALPHA = 0.14
+export let GRID_WIDTH = 1
+
+export function setHighContrast(on: boolean): void {
+  ZONE_SHADES = on ? CONTRAST_SHADES : NORMAL_SHADES
+  BOARD_GRID_LINE = on ? '#9A8763' : '#C0B091'
+  OUTLINE_ALPHA = on ? 0.34 : 0.14
+  GRID_WIDTH = on ? 1.5 : 1
 }
 
 export const BLIGHT: Shade = { top: '#ADA89E', side: '#948F86', dark: '#7E7A72' }

@@ -46,8 +46,8 @@ function poly(ctx: CanvasRenderingContext2D, pts: number[][]): void {
 export function drawLot(ctx: CanvasRenderingContext2D, x: number, y: number, s: number): void {
   ctx.fillStyle = T.BOARD_BASE
   ctx.fillRect(x, y, s, s)
-  ctx.strokeStyle = T.BOARD_GRID
-  ctx.lineWidth = 1
+  ctx.strokeStyle = T.BOARD_GRID_LINE
+  ctx.lineWidth = T.GRID_WIDTH
   ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1)
 }
 

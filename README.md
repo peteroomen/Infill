@@ -12,6 +12,7 @@ npm install
 npm run dev      # play at localhost:5173
 npm test         # the rules
 npm run model    # the balance harness — RUNS=25 for a fuller pass
+npm run playtest # drive the real app in a browser; fails on any console error
 npm run build    # typecheck + production build
 ```
 
@@ -106,7 +107,9 @@ src/render/
   tiles.ts      the tile-drawing seam — swap this for real art
   renderer.ts   board, skyline, rail, inspection
 src/App.tsx     drag, rotate, bulldoze
-scripts/model.ts  the balance harness
+scripts/model.ts     the balance harness
+scripts/sweep.mjs    tuning sweeps over the demand knobs
+scripts/playtest.mjs  drives the built app in a browser
 ```
 
 `place(state, move)` is pure and returns a new state. The harness, the drag
@@ -119,11 +122,23 @@ stay that way.
 - [docs/BALANCE.md](docs/BALANCE.md) — what the harness changed, and why
 - [docs/ART-DIRECTION.md](docs/ART-DIRECTION.md) — the massing-model direction
 
+## Learning it
+
+There is no tutorial level. Each rule gets one card, the first time that rule
+actually matters in a real game — the overlap card waits until an overlap is
+available, the blight card until blight lands. Turn them off under Hints.
+
+## Settings
+
+Hints, reduced motion, high contrast (wider steps between density levels),
+haptics, and a left-handed drag offset. A game in progress survives a reload;
+a finished run clears the save and records the best population.
+
 ## Status
 
 MVP. Playable end to end: place, rotate, overlap, roads, parks, demand, blight,
-bulldozer, skyline, game over. Art is a code-drawn placeholder in the chosen
-direction, behind one seam.
+bulldozer, skyline, tutorial, saves, pause menu, settings, game over. Art is a
+code-drawn placeholder in the chosen direction, behind one seam.
 
 Not in: terrain, the stadium / transit stop / power plant, district clears,
 utilities, ordinance cards, landscape.

@@ -1,6 +1,6 @@
 # INFILL
 
-**A shape puzzle that builds a city.** v0.3 — revised after the harness.
+**A shape puzzle that builds a city.** v0.4 — built, measured, tuned.
 
 > **v0.3, in one paragraph.** The game now exists, and measuring it overturned
 > three more things. Blight **blocks** its row and column and is permanent until
@@ -231,7 +231,7 @@ with a full turn of demand made the works slot a trap.
 
 ## Special buildings
 
-**One in MVP: the Park.** 1×1, owed every **2,200 population banked** — not every
+**One in MVP: the Park.** 1×1, owed every **1,500 population banked** — not every
 N lines, because line count is farmable with cheap low-value lines and population
 is not. It occupies the works slot until placed, pausing the road cooldown.
 
@@ -331,10 +331,17 @@ quarter of the line.
 |---|---|
 | Bars | three, 0–100 |
 | Start | R 30 · C 25 · I 20 |
-| Growth | **+1 to every bar per zone placement**, rising by +1 every **25 placements**, capped at 6 |
+| Growth | **+1 to every bar per zone placement**, rising by +1 every **10 placements**, capped at 5 |
 | Roads | do not advance growth |
 | Relief | each zone's bar drops by the summed density of that zone's **uniquely harvested** cells |
 | Overflow | at 100 — blight spawns on a random empty cell, the bar resets to 60, its growth rate rises permanently by +1 (capped at +2). At most one blight spawns per placement. |
+
+Swept against run length, and the finding was that **blight is what ends a run,
+and runs end at roughly 29 blight cells whatever the settings** — so these knobs
+only decide how fast you get there. 10/5 lands a median run at ~126 placements
+while keeping the arc: an opening gentle enough to build something, then a clock
+you cannot outrun. Raising the base growth instead hits the same length but is
+uniformly hard from the first move, which is a worse game.
 
 A placement creates exactly four density units. At growth 1 that is 4 in against
 3 out — perfect efficiency banks a buffer. Each decade tick costs 3 more per

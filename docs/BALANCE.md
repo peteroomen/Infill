@@ -69,29 +69,58 @@ Rewritten to value **stored population** (a density-3 block is 45 waiting to be
 harvested, in one cell rather than three) and to ignore progress on lines that
 blight has already killed.
 
+## Finding 4 — run length is set by how fast blight arrives, not by anything else
+
+Asked to bring a run down from ~200 placements to ~120, the obvious knobs were
+the demand growth ramp. Sweeping them (`node scripts/sweep.mjs`) turned up
+something more useful than a setting:
+
+```
+DECADE  GROWTH_MAX  placements  lines  blight  population
+    25           3         208     54    28.8      12,921
+    18           4         163     42    28.3       9,839
+    14           5         139     33    29.1       8,042
+    10           5         126     31    28.3       6,918
+```
+
+**Blight events barely move — 28 to 30 across every combination.** A run ends at
+roughly 29 blight cells however it is tuned, because that is the load at which
+enough rows and columns are blocked for the board to saturate. The growth knobs
+only change how fast you get there; they do not change the shape of the ending.
+
+Two settings reach ~125 placements. `GROWTH_BASE=3` with a slow ramp is
+uniformly hard from the first move; `DECADE=10, GROWTH_MAX=5` keeps a gentle
+opening and escalates. The second is the better game, so that is what shipped.
+
+One consequence worth recording: **anything priced in population has to be
+rescaled when run length moves.** Halving run length halved the population a run
+banks, which silently halved both parks earned and bulldozer charges granted.
+`PARK_EVERY` went 2200 → 1500 and `POPULATION_PER_CHARGE` 1500 → 1000 to hold
+them steady.
+
 ## Where it stands
 
-25 runs per bot:
+20 runs per bot, at the shipped settings:
 
 | | greedy | reacting | thinking |
 |---|---|---|---|
-| mean population | 10,261 | 13,262 | **14,099** |
-| median placements | 188 | 205 | 204 |
-| median lines | 44 | 54 | 53 |
-| clears per placement | 0.229 | 0.267 | 0.265 |
-| blight events | 28.6 | 29.7 | 29.0 |
-| **placements that overlap** | 56.9% | 43.5% | **46.4%** |
-| **…with space to spare** | 95.9% | 95.3% | **98.2%** |
-| roads placed | 4.8 | 16.6 | 12.3 |
-| parks placed | 3.8 | 5.5 | 5.9 |
-| harvested at density 1 | 65.8% | 81.6% | 79.6% |
-| harvested at density 2 | 23.1% | 10.7% | 12.6% |
-| harvested at density 3 | 11.2% | 7.7% | 7.8% |
+| mean population | 5,919 | 7,019 | **8,693** |
+| median placements | 117 | 126 | 138 |
+| median lines | 23 | 31 | 34 |
+| clears per placement | 0.208 | 0.239 | 0.247 |
+| blight events | 31.4 | 28.5 | 32.3 |
+| runs in a blight spiral | 0% | 0% | 0% |
+| **placements that overlap** | 57.2% | 44.2% | **44.9%** |
+| **…with space to spare** | 92.5% | 95.8% | **97.7%** |
+| roads placed | 3.3 | 14.7 | 13.7 |
+| parks placed | 1.8 | 2.8 | 3.4 |
+| harvested at density 1 | 65.9% | 79.9% | 79.8% |
+| harvested at density 2 | 23.0% | 10.8% | 12.1% |
+| harvested at density 3 | 11.0% | 9.4% | 8.1% |
 
-**Lookahead is worth 37.4%** over greedy. The design asks for more than 40%, so
-this is close but not yet passing — the ladder is real and monotonic, but the
-second ply is only worth 6% over the first, which says most of the skill is in
-evaluating one move well rather than seeing ahead.
+**Lookahead is worth 46.9%** over greedy — past the 40% the design asks for, and
+up from 37.4% before the run was shortened. Pressure makes playing well matter
+more, which is the right direction for a game to move under tuning.
 
 **Overlap is a proactive verb, not a dumping ground.** 46% of placements overlap,
 and 98% of those happen with twenty or more empty cells still available. That was
@@ -99,14 +128,16 @@ the single most important thing to establish and it holds.
 
 ## Still open
 
-- **Run length.** 204 placements against a design target of 70–110. At two to
-  three seconds a placement that is 8–10 minutes, which is inside the session
-  target, so the placement figure in the design doc was the wrong guess rather
-  than the game being wrong. Left alone deliberately; `DECADE` and `GROWTH_MAX`
-  are the knobs if it needs tightening.
-- **The last 3% of the skill curve.** Worth attacking by making density decisions
-  more consequential rather than by adding rules.
-- **Blight at 29 events a run** is high. Survivable, but the bulldozer economy
-  has not been tuned against it.
+- **Blight at ~30 events a run** against 3 bulldozer charges. Survivable — no run
+  in any sweep entered a spiral — but the player is bulldozing perhaps a tenth of
+  what lands, so most blight is permanent by design rather than by decision.
+  Whether that reads as pressure or as helplessness is a question for hands, not
+  for bots.
+- **`thinking` runs longer than `reacting`** (138 against 126) while scoring more.
+  Survival and score are not yet in tension, and a game where the best players
+  also last longest has no real endgame decision.
+- **Parks at 1.8–3.4 a run.** Present in every run, but the queue backs up: a park
+  in the works slot blocks road refills until placed, so hoarding one costs roads.
+  Intended, unverified.
 - No bot models a human's inability to see four neighbours at a glance, so none
   of this says whether the game reads well in the hand.

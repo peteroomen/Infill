@@ -25,6 +25,7 @@ const PAD = 16
 const HEADER_H = 104
 const SKYLINE_H = 88
 const RAIL_H = 126
+const MENU_W = 40
 const GAP = 12
 
 /**
@@ -66,7 +67,10 @@ export function layout(w: number, h: number): Layout {
     w,
     h,
     pad,
-    header: { x: pad, y: headerY, w: innerW, h: HEADER_H },
+    // The right edge is short of the gutter: the pause button is an HTML
+    // control sitting over the canvas there, and the demand values must not
+    // run underneath it.
+    header: { x: pad, y: headerY, w: innerW - MENU_W, h: HEADER_H },
     skyline: { x: pad, y: skylineY, w: innerW, h: SKYLINE_H },
     board: { x: boardX, y: boardY, w: boardW, h: boardH },
     cell,

@@ -127,7 +127,7 @@ function summarise(bot: BotName, runs: RunStats[]) {
 }
 
 const RUNS = Number(process.env.RUNS ?? 120)
-const bots: BotName[] = ['greedy', 'reacting', 'thinking']
+const bots: BotName[] = (process.env.BOTS?.split(',') as BotName[]) ?? ['greedy', 'reacting', 'thinking']
 
 console.log(`INFILL — ${RUNS} runs per bot · decade ${DECADE} · charge every ${POPULATION_PER_CHARGE}\n`)
 
@@ -164,7 +164,9 @@ for (const [name, fn] of rows) {
   console.log(name.padEnd(w0) + summaries.map((s) => fn(s).padStart(12)).join(''))
 }
 
-const g = summaries[0].meanPop
-const t = summaries[2].meanPop
-console.log(`\nlookahead is worth ${g > 0 ? pct(t / g - 1) : 'n/a'} over greedy`)
-console.log(`(the design asks for >40%; below that the game is solitaire)`)
+const g = summaries.find((s) => s.bot === 'greedy')
+const t = summaries.find((s) => s.bot === 'thinking')
+if (g && t && g.meanPop > 0) {
+  console.log(`\nlookahead is worth ${pct(t.meanPop / g.meanPop - 1)} over greedy`)
+  console.log(`(the design asks for >40%; below that the game is solitaire)`)
+}

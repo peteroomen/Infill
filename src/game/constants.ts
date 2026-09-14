@@ -5,6 +5,15 @@
  * Nothing outside this file should contain a balance constant.
  */
 
+/**
+ * Tunables can be overridden from the environment so the harness can sweep them
+ * without editing this file. The guard keeps it inert in the browser build.
+ */
+function tune(key: string, fallback: number): number {
+  const v = typeof process !== 'undefined' ? process?.env?.[key] : undefined
+  return v === undefined || v === '' ? fallback : Number(v)
+}
+
 export const W = 10
 export const H = 10
 export const AREA = W * H
@@ -43,16 +52,25 @@ export const DEMAND_MAX = 100
 export const DEMAND_START = { R: 30, C: 25, I: 20 }
 export const DEMAND_RESET = 60
 /** Base growth per bar per zone placement. Roads and the bulldozer do not advance it. */
-export const GROWTH_BASE = 1
-/** Every DECADE placements, every bar's growth rises by 1 — up to GROWTH_MAX. */
-export const DECADE = 25            // HARNESS
+export const GROWTH_BASE = tune('GROWTH_BASE', 1)
+/**
+ * Every DECADE placements every bar's growth rises by 1, up to GROWTH_MAX.
+ *
+ * Swept against run length: blight is what ends a run, and runs end at roughly
+ * 29 blight cells whatever the settings, so these only decide how fast you get
+ * there. 10/5 lands a median run at ~126 placements while keeping the arc — an
+ * opening gentle enough to build something, then a clock you cannot outrun.
+ * Raising GROWTH_BASE instead hits the same length but is uniformly hard from
+ * the first move, which is a worse game. See scripts/sweep.mjs.
+ */
+export const DECADE = tune('DECADE', 10)
 /** The ramp has to asymptote. Unbounded, it diverges and the economy stops meaning anything. */
-export const GROWTH_MAX = 3         // HARNESS
+export const GROWTH_MAX = tune('GROWTH_MAX', 5)
 /** A zone's own overflow permanently adds this to its growth, up to a cap. */
 export const OVERFLOW_GROWTH = 1
-export const OVERFLOW_GROWTH_MAX = 2
+export const OVERFLOW_GROWTH_MAX = tune('OVERFLOW_GROWTH_MAX', 2)
 /** Blight spawns per placement, however many bars overflow at once. */
-export const BLIGHT_PER_PLACEMENT = 1
+export const BLIGHT_PER_PLACEMENT = tune('BLIGHT_PER_PLACEMENT', 1)
 
 /** Bag: zone draw is a mixture of uniform and demand-weighted. */
 export const BAG_UNIFORM_SHARE = 0.75
@@ -63,10 +81,14 @@ export const WORKS_COOLDOWN = 3
 /** Bulldozer. */
 export const CHARGES_START = 1
 export const CHARGES_MAX = 3
-export const POPULATION_PER_CHARGE = 1500   // HARNESS
+export const POPULATION_PER_CHARGE = tune('POPULATION_PER_CHARGE', 1500)
 
 /**
  * A park is owed every PARK_EVERY population banked — not every N lines. Line
  * count is farmable with cheap, low-value lines; population is not.
+ *
+ * Rescaled with the run-length tuning: shortening runs halved the population a
+ * run banks, which silently halved both the parks earned and the bulldozer
+ * charges granted. Anything priced in population has to move when run length does.
  */
-export const PARK_EVERY = 2200              // HARNESS
+export const PARK_EVERY = tune('PARK_EVERY', 2200)

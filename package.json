@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "INFILL — a shape puzzle that builds a city.",
+  "description": "INFILL \u2014 a shape puzzle that builds a city.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "model": "vite-node scripts/model.ts",
-    "shot": "vite build && node scripts/shot.mjs"
+    "shot": "vite build && node scripts/shot.mjs",
+    "playtest": "vite build --mode playtest && node scripts/playtest.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
