@@ -5,7 +5,7 @@ import { canPlace } from '../game/rules'
 import { scoreCell } from '../game/score'
 import type { Piece, State, Zone } from '../game/types'
 import { ZONES } from '../game/types'
-import { artReady, drawArtCell, drawArtPips, drawArtSkyline, drawArtSwatch, SKYLINE_PAPER } from './art'
+import { artReady, drawArtLot, drawArtModel, drawArtPips, drawArtShadow, drawArtSkyline, drawArtSwatch } from './art'
 import { hit, layout, type Layout, type Rect } from './layout'
 import * as T from './theme'
 import { drawCell, drawGhostCell, drawPieceSwatch, roundRect } from './tiles'
@@ -109,17 +109,14 @@ function drawHeader(ctx: CanvasRenderingContext2D, L: Layout, s: State): void {
 /** The harvest. Buildings that left the board, as an elevation that only grows. */
 function drawSkyline(ctx: CanvasRenderingContext2D, r: Rect, s: State, useArt: boolean): void {
   if (useArt) {
-    ctx.save()
-    roundRect(ctx, r.x, r.y, r.w, r.h, 8)
-    ctx.clip()
-    ctx.fillStyle = SKYLINE_PAPER
-    ctx.fillRect(r.x, r.y, r.w, r.h)
     const storeys: Record<'R' | 'C' | 'I', number> = { R: 0, C: 0, I: 0 }
     for (const e of s.skyline) storeys[e.zone] += e.density
     drawArtSkyline(ctx, r, storeys)
-    ctx.restore()
+    // A ground line, so the elevation stands on something rather than floating.
+    ctx.fillStyle = T.BOARD_FRAME
+    ctx.fillRect(r.x, r.y + r.h - 1, r.w, 1)
     if (s.skyline.length === 0) {
-      label(ctx, 'the city, so far', r.x + 12, r.y + r.h - 12, 9, T.INK_FAINT)
+      label(ctx, 'the city, so far', r.x, r.y + r.h - 10, 9, T.INK_FAINT)
     }
     return
   }
@@ -167,20 +164,42 @@ function drawBoard(ctx: CanvasRenderingContext2D, L: Layout, view: View, useArt:
   roundRect(ctx, b.x - 7, b.y - 7, b.w + 14, b.h + 14, 8)
   ctx.fill()
 
+  // Buildings are drawn larger than their cell and overhang upward, so the
+  // board clips them rather than letting one spill onto the frame.
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(b.x, b.y, b.w, b.h)
+  ctx.clip()
+
+  // Three passes, and the order is the point. Ground first, so the board is one
+  // continuous surface. Then every shadow, so no shadow lands on a roof. Then
+  // the buildings in row order, so a nearer one overlaps the lot behind it.
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const cell = s.board[idx(x, y)]
       const axes = cell.kind === 'road' ? roadAxes(s, x, y) : { h: false, v: false }
       const px = b.x + x * c
       const py = b.y + y * c
-      if (useArt) {
-        drawArtCell(ctx, cell, px, py, c, axes)
+      if (useArt) drawArtLot(ctx, cell, px, py, c, axes)
+      else drawCell(ctx, cell, px, py, c, axes)
+    }
+  }
+  if (useArt) {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) drawArtShadow(ctx, s.board[idx(x, y)], b.x + x * c, b.y + y * c, c)
+    }
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const cell = s.board[idx(x, y)]
+        const px = b.x + x * c
+        const py = b.y + y * c
+        drawArtModel(ctx, cell, px, py, c)
         if (cell.kind === 'zone') drawArtPips(ctx, px, py, c, cell.density)
-      } else {
-        drawCell(ctx, cell, px, py, c, axes)
       }
     }
   }
+
+  ctx.restore()
 
   // Sightlines for the road being dragged — the one rule that is invisible
   // without help.

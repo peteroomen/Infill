@@ -104,7 +104,8 @@ src/game/     the rules, pure and cloneable. No DOM.
   settle.ts     the settlement contract
   bots.ts       greedy / reacting / thinking
 src/render/
-  tiles.ts      the tile-drawing seam — swap this for real art
+  tiles.ts      the code-drawn cell states — fallback, and high contrast
+  art.ts        the photographed model: lots, buildings, cast shadows, skyline
   renderer.ts   board, skyline, rail, inspection
 src/App.tsx     drag, rotate, bulldoze
 scripts/model.ts     the balance harness
@@ -133,6 +134,26 @@ available, the blight card until blight lands. Turn them off under Hints.
 Hints, reduced motion, high contrast (wider steps between density levels),
 haptics, and a left-handed drag offset. A game in progress survives a reload;
 a finished run clears the save and records the best population.
+
+## The art
+
+Buildings are stored separately from the ground they stand on. The source sheet
+photographs each model centred on its own slab with a wide chipboard margin;
+drawn whole, those margins put gutters between the cells of a single piece and a
+tetromino reads as four marooned houses. So `scripts/slice-art.py` cuts the
+buildings out, keeps the bare lot as a repeating ground texture, and the renderer
+draws each building larger than its cell and free to overhang its neighbours.
+
+Shadows are cast from the cut-out silhouettes rather than kept from the
+photograph, because a photographed shadow stops dead at the edge of its slab.
+The board draws in three passes — every lot, then every shadow, then every
+building in row order — so no shadow ever lands on a roof.
+
+The skyline is not a progress bar wearing a picture. The elevation runs green,
+then blue, then amber, and each zone inks in its own measured stretch in
+proportion to the storeys of that zone you actually harvested. The whole
+panorama is always there as a faint underlay, so what is missing reads as a
+drawing not yet finished.
 
 ## Status
 
