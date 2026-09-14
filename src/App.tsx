@@ -8,6 +8,7 @@ import { canPlace } from './game/rules'
 import { loadSeen, nextTip, saveSeen } from './game/tips'
 import type { Piece, State } from './game/types'
 import { hit, layout } from './render/layout'
+import { onArtReady } from './render/art'
 import { render, type DragView } from './render/renderer'
 import { setHighContrast } from './render/theme'
 import { buzz, loadSettings, saveSettings, type Settings } from './settings'
@@ -110,11 +111,14 @@ export default function App() {
         bulldozeArmed: armed || state.mustBulldoze,
         inspect,
         clearPulse: settings.reducedMotion ? 0 : pulseRef.current,
+        drawnTiles: settings.highContrast,
       },
       w,
       h,
     )
-  }, [state, armed, inspect, dragView, settings.reducedMotion])
+  }, [state, armed, inspect, dragView, settings.reducedMotion, settings.highContrast])
+
+  useEffect(() => onArtReady(() => forceDraw((n) => n + 1)), [])
 
   useEffect(() => {
     const onResize = () => {

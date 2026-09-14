@@ -23,7 +23,7 @@ export interface Layout {
 
 const PAD = 16
 const HEADER_H = 104
-const SKYLINE_H = 88
+const SKYLINE_H = 138
 const RAIL_H = 126
 const MENU_W = 40
 const GAP = 12

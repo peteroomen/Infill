@@ -5,6 +5,7 @@ import { canPlace } from '../game/rules'
 import { scoreCell } from '../game/score'
 import type { Piece, State, Zone } from '../game/types'
 import { ZONES } from '../game/types'
+import { artReady, drawArtCell, drawArtPips, drawArtSkyline, drawArtSwatch, SKYLINE_PAPER } from './art'
 import { hit, layout, type Layout, type Rect } from './layout'
 import * as T from './theme'
 import { drawCell, drawGhostCell, drawPieceSwatch, roundRect } from './tiles'
@@ -23,6 +24,8 @@ export interface View {
   inspect: number | null
   /** 0..1 — pulses the last clear. */
   clearPulse: number
+  /** High contrast falls back to the drawn tiles: wider colour steps beat fidelity. */
+  drawnTiles?: boolean
 }
 
 function label(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size = 10, color = T.INK_DIM) {
@@ -49,10 +52,12 @@ export function render(ctx: CanvasRenderingContext2D, view: View, w: number, h: 
   ctx.fillRect(0, 0, w, h)
   ctx.textBaseline = 'alphabetic'
 
+  const useArt = artReady() && !view.drawnTiles
+
   drawHeader(ctx, L, s)
-  drawSkyline(ctx, L.skyline, s)
-  drawBoard(ctx, L, view)
-  drawRail(ctx, L, view)
+  drawSkyline(ctx, L.skyline, s, useArt)
+  drawBoard(ctx, L, view, useArt)
+  drawRail(ctx, L, view, useArt)
   if (view.inspect !== null) drawInspect(ctx, L, s, view.inspect)
 
   return L
@@ -102,7 +107,23 @@ function drawHeader(ctx: CanvasRenderingContext2D, L: Layout, s: State): void {
 }
 
 /** The harvest. Buildings that left the board, as an elevation that only grows. */
-function drawSkyline(ctx: CanvasRenderingContext2D, r: Rect, s: State): void {
+function drawSkyline(ctx: CanvasRenderingContext2D, r: Rect, s: State, useArt: boolean): void {
+  if (useArt) {
+    ctx.save()
+    roundRect(ctx, r.x, r.y, r.w, r.h, 8)
+    ctx.clip()
+    ctx.fillStyle = SKYLINE_PAPER
+    ctx.fillRect(r.x, r.y, r.w, r.h)
+    const storeys: Record<'R' | 'C' | 'I', number> = { R: 0, C: 0, I: 0 }
+    for (const e of s.skyline) storeys[e.zone] += e.density
+    drawArtSkyline(ctx, r, storeys)
+    ctx.restore()
+    if (s.skyline.length === 0) {
+      label(ctx, 'the city, so far', r.x + 12, r.y + r.h - 12, 9, T.INK_FAINT)
+    }
+    return
+  }
+
   ctx.fillStyle = T.PAGE_DEEP
   roundRect(ctx, r.x, r.y, r.w, r.h, 8)
   ctx.fill()
@@ -129,7 +150,7 @@ function drawSkyline(ctx: CanvasRenderingContext2D, r: Rect, s: State): void {
   ctx.fillRect(r.x + 6, baseY, r.w - 12, 1.5)
 }
 
-function drawBoard(ctx: CanvasRenderingContext2D, L: Layout, view: View): void {
+function drawBoard(ctx: CanvasRenderingContext2D, L: Layout, view: View, useArt: boolean): void {
   const s = view.state
   const b = L.board
   const c = L.cell
@@ -149,7 +170,15 @@ function drawBoard(ctx: CanvasRenderingContext2D, L: Layout, view: View): void {
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const cell = s.board[idx(x, y)]
-      drawCell(ctx, cell, b.x + x * c, b.y + y * c, c, cell.kind === 'road' ? roadAxes(s, x, y) : undefined)
+      const axes = cell.kind === 'road' ? roadAxes(s, x, y) : { h: false, v: false }
+      const px = b.x + x * c
+      const py = b.y + y * c
+      if (useArt) {
+        drawArtCell(ctx, cell, px, py, c, axes)
+        if (cell.kind === 'zone') drawArtPips(ctx, px, py, c, cell.density)
+      } else {
+        drawCell(ctx, cell, px, py, c, axes)
+      }
     }
   }
 
@@ -225,7 +254,8 @@ function card(ctx: CanvasRenderingContext2D, r: Rect): void {
   ctx.stroke()
 }
 
-function drawRail(ctx: CanvasRenderingContext2D, L: Layout, view: View): void {
+function drawRail(ctx: CanvasRenderingContext2D, L: Layout, view: View, useArt: boolean): void {
+  const swatch = useArt ? drawArtSwatch : drawPieceSwatch
   const s = view.state
   label(ctx, 'Next pieces', L.slots[0].x, L.rail.y + 12, 9)
   label(ctx, 'Works', L.works.x, L.rail.y + 12, 9)
@@ -236,7 +266,7 @@ function drawRail(ctx: CanvasRenderingContext2D, L: Layout, view: View): void {
     const p = s.hand[i]
     if (!p) return
     const unit = Math.min(r.w / 5, (r.h - 22) / 4)
-    drawPieceSwatch(ctx, p.cells, p.kind, p.zone as Zone | null, r.x + r.w / 2, r.y + r.h / 2 - 6, unit)
+    swatch(ctx, p.cells, p.kind, p.zone as Zone | null, r.x + r.w / 2, r.y + r.h / 2 - 6, unit)
     ctx.fillStyle = T.ZONE_ACCENT[p.zone ?? 'R']
     ctx.font = `700 8.5px ${T.FONT}`
     ctx.letterSpacing = '0.1em'
@@ -249,7 +279,7 @@ function drawRail(ctx: CanvasRenderingContext2D, L: Layout, view: View): void {
   if (s.works) {
     const r = L.works
     const unit = Math.min(r.w / 4.5, (r.h - 22) / 4)
-    drawPieceSwatch(ctx, s.works.cells, s.works.kind, null, r.x + r.w / 2, r.y + r.h / 2 - 6, unit)
+    swatch(ctx, s.works.cells, s.works.kind, null, r.x + r.w / 2, r.y + r.h / 2 - 6, unit)
     ctx.fillStyle = T.INK_DIM
     ctx.font = `700 8.5px ${T.FONT}`
     const t = s.works.kind === 'park' ? 'PARK' : 'ROAD'
